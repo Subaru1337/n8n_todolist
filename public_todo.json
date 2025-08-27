@@ -1,0 +1,550 @@
+{
+  "name": "todo_list copy",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        0
+      ],
+      "id": "bc9e939c-dabd-4de3-ad0b-efaaff865b70",
+      "name": "Telegram Trigger",
+      "webhookId": "3f21935b-f05a-4767-bfe6-f12ecfea9c5a",
+      "credentials": {
+        "telegramApi": {
+          "id": "ucWXTgb1aFL86pdL",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an intelligent assistant that processes text to extract a task and its due date. Analyze the user's message below. Your job is to identify the core task and calculate the exact due date.\n\nThe current date is {{new Date().toISOString()}}.\n\nPlease respond ONLY with a JSON object containing two keys: \"task_content\" and \"due_date\". The due_date must be in YYYY-MM-DD format.\n\nUser's message: {{$json.transcriptionText }}||{{$json.message.text}}\n\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        -16
+      ],
+      "id": "241a8ac3-6f37-4041-8c83-be48b31479ca",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GZn4nXh41X9kXita",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "project": {
+          "__rl": true,
+          "value": "2358402117",
+          "mode": "list",
+          "cachedResultName": "Inbox"
+        },
+        "content": "={{ $json.content }}",
+        "options": {
+          "dueDateTime": "={{ $json.due }}"
+        }
+      },
+      "type": "n8n-nodes-base.todoist",
+      "typeVersion": 2.1,
+      "position": [
+        1504,
+        -16
+      ],
+      "id": "c8c8a46d-dbb1-4679-9fc0-45bb6f1bedfb",
+      "name": "Create a task",
+      "credentials": {
+        "todoistOAuth2Api": {
+          "id": "anUCCGgi0rjZ8uU6",
+          "name": "Todoist account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n    // Extract the text\n    let rawText = item.json.content.parts[0].text;\n\n    // Remove ```json and ``` if present\n    rawText = rawText.replace(/```json\\s*/, '').replace(/```/g, '').trim();\n\n    // Parse JSON\n    const parsed = JSON.parse(rawText);\n\n    return {\n        json: {\n            content: parsed.task_content,\n            due: parsed.due_date\n        }\n    };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        -16
+      ],
+      "id": "303211b8-e104-46dc-9baf-82140637fcbe",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=This task is created : {{ $json.content }} for date - {{ $json.due.string }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1664,
+        -16
+      ],
+      "id": "a8a451c7-0aa6-4761-a6aa-43493c9a9792",
+      "name": "Send a text message",
+      "webhookId": "50a77fb2-d0c1-450c-911d-36c54edcc8c9",
+      "credentials": {
+        "telegramApi": {
+          "id": "ucWXTgb1aFL86pdL",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e8a6b4da-1042-4ede-815d-24b51e66fa6a",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        0
+      ],
+      "id": "c4003fc9-982a-4c3f-bebe-cf44336551dd",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot(your_bot_token)/getFile?file_id={{ $json.message.voice.file_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        96
+      ],
+      "id": "a521fee4-6806-4766-a7b5-08bed2c0d05f",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b487c20b-5611-4ed5-9a5e-ef50e38d2d59",
+              "name": "voice_url",
+              "value": "=https://api.telegram.org/file/bot(your_bot_token)/{{$json[\"result\"][\"file_path\"]}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        144,
+        192
+      ],
+      "id": "6d930fa2-6b85-4d99-b2d8-35f665f2e9fb",
+      "name": "build url"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.assemblyai.com/v2/transcript",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"audio_url\": \"{{ $json.voice_url }}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        288
+      ],
+      "id": "2d7ea810-1a90-4c06-bf04-be7b8903b535",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zYq7f7OqC0KkA0xE",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.assemblyai.com/v2/transcript/{{$json[\"id\"]}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        288
+      ],
+      "id": "ae8dad0d-5aa5-4b64-a1f2-3d135fe0f7f2",
+      "name": "HTTP Request2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zYq7f7OqC0KkA0xE",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 0.5
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        448
+      ],
+      "id": "ae6bf88d-e8aa-4c9c-8a55-750a32ccd4e0",
+      "name": "Wait",
+      "webhookId": "38bdff1a-592e-4e57-8eea-318be311a870"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c6ed4211-1d50-410c-9bc3-0f3578a428a9",
+              "name": "transcriptionText",
+              "value": "={{$json[\"text\"]}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        272
+      ],
+      "id": "6e343c57-d1ff-4382-a4a2-f662d047ae7b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "33c80c65-2ecd-4fe7-a95c-b1ea03bf5da0",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        288
+      ],
+      "id": "013ad0f6-710d-4839-80ff-151df948d6e6",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "content": "## IMPORTANT\n### Create credentials for telegram, gemini, todoist and connect them to their respective nodes\n \n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        64,
+        -160
+      ],
+      "id": "92651d85-f751-4ef9-b283-9920c3852a99",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Text Input \n",
+        "height": 80,
+        "width": 166
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -80
+      ],
+      "id": "8f3622b0-1f67-41a4-975e-f48446dc3825",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Voice Input \n",
+        "height": 80,
+        "width": 166
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        560,
+        48
+      ],
+      "id": "8f280e7d-97ac-4be2-ad99-a2090b3da04d",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "In these two nodes replace (your_bot_token)\nwith your actual telegram bot token ",
+        "height": 96
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        240
+      ],
+      "id": "0d5af1c5-e248-4735-909f-b541c44a959d",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "In HTTP Request 1 and 2 \ncreate a Header Auth\nin that:\nName - Authorization\nValue - (AssemblyAI api key) \n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        176,
+        496
+      ],
+      "id": "5735005e-e109-44db-9330-e334e20c6655",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Create a task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a task": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "build url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "build url": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e037360a-ce55-4738-87d1-9f84af8a552a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c11155cbb5afa27382b2bcf7f20132dfa077b8c4ed3a24bfce058ab7802f4c3b"
+  },
+  "id": "TCc040vBmTNSK4ol",
+  "tags": []
+}
